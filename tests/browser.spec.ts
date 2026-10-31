@@ -175,3 +175,25 @@ test("desktop accessibility, no persistent data or inputs sent", async ({
     })),
   ).toEqual({ local: 0, session: 0, cookie: "" });
 });
+
+test("open comparison stays readable in printed classroom plan", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Try a mixed layout/ }).click();
+  await page.locator("#readings").fill("12");
+  await page.getByRole("button", { name: "Compare with starting plan" }).click();
+  await expect(page.locator("#comparison")).toContainText("72 readings");
+  await expect(page.locator("#comparison dt").first()).toHaveCSS("color", "rgb(192, 209, 181)");
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("#comparison")).toBeVisible();
+  await page.screenshot({ path: "evidence/print-comparison.png", fullPage: true });
+  await page.pdf({ path: "evidence/print-comparison-no-backgrounds.pdf", printBackground: false });
+  await page.pdf({ path: "evidence/print-comparison-backgrounds.pdf", printBackground: true });
+  for (const label of await page.locator("#comparison dt").all()) {
+    await expect(label).toHaveCSS("color", "rgb(0, 0, 0)");
+  }
+  await expect(page.locator(".reflection")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator("#comparison")).toContainText("30 readings");
+  await expect(page.locator("#comparison")).toContainText("72 readings");
+  await page.emulateMedia({ media: "screen" });
+  await expect(page.locator("#comparison dt").first()).toHaveCSS("color", "rgb(192, 209, 181)");
+});
