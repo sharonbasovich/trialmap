@@ -53,7 +53,7 @@ function render({ focus = null, notice = null } = {}) {
             .filter((p) => p.shelf === s)
             .map(
               (p) =>
-                `<button type="button" class="pot" data-pot="${p.id}" aria-pressed="${p.id === selected}" aria-label="Pot ${p.id}, treatment ${p.treatment}, shelf ${s}">${plant(p.treatment, p.id)}<span class="pot-label">${p.id}<span class="tag ${p.treatment.toLowerCase()}">${p.treatment}</span></span></button>`,
+                `<button type="button" class="pot" data-pot="${p.id}" aria-pressed="${p.id === selected}" aria-label="${p.id} ${p.treatment}, pot with treatment ${p.treatment}, shelf ${s}">${plant(p.treatment, p.id)}<span class="pot-label">${p.id}<span class="tag ${p.treatment.toLowerCase()}">${p.treatment}</span></span></button>`,
             )
             .join("") ||
           '<span class="empty-shelf">No pots here yet. Select a pot on the other shelf to move it.</span>'

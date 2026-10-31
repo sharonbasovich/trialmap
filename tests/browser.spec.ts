@@ -44,13 +44,13 @@ test("individual pot controls, shared units and missing treatment are honest", a
 }) => {
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Pot P3, treatment A, shelf 1", exact: true })
+    .getByRole("button", { name: "P3 A, pot with treatment A, shelf 1", exact: true })
     .click();
   await page.locator("#pot-shelf").selectOption("2");
   await expect(page.locator("#pot-shelf")).toBeFocused();
   await expect(
     page.getByRole("button", {
-      name: "Pot P3, treatment A, shelf 2",
+      name: "P3 A, pot with treatment A, shelf 2",
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
