@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#173f35" />
+    <meta
+      name="description"
+      content="See the difference between more readings and independent experiments. A classroom plant-trial planning prototype."
+    />
+    <title>TrialMap · Make the experiment count</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#workspace">Skip to experiment workspace</a>
+    <header class="topbar">
+      <a class="brand" href="#"
+        ><span class="brand-mark" aria-hidden="true">✳</span> TrialMap<span
+          class="brand-caption"
+          >FIELD NOTES / 001</span
+        ></a
+      ><span class="prototype">A classroom planning prototype</span
+      ><button id="print" class="button quiet">
+        Print plan <span aria-hidden="true">↗</span>
+      </button>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="title">
+        <div>
+          <p class="eyebrow">BETTER QUESTIONS. BETTER EXPERIMENTS.</p>
+          <h1 id="title">More readings.<br /><em>Not more experiments.</em></h1>
+          <p class="intro-copy">
+            Before you spend weeks growing plants, check what your setup can
+            actually tell you. Start with six pots. Discover the hidden catch.
+          </p>
+        </div>
+        <aside class="intro-note">
+          <span class="note-label">THE STARTING QUESTION</span>
+          <p>
+            Does treatment <span class="tag a">A</span> or
+            <span class="tag b">B</span> change plant growth?
+          </p>
+          <small>Two treatments · two shelves · one experiment</small>
+        </aside>
+      </section>
+      <section
+        id="workspace"
+        class="workspace"
+        aria-label="Experiment workspace"
+      >
+        <div class="workspace-heading">
+          <div>
+            <p class="eyebrow">01 / ARRANGE YOUR TRIAL</p>
+            <h2>Your growing room</h2>
+          </div>
+          <div class="preset-group" aria-label="Example plans">
+            <button class="button" id="confounded">Reset starting plan</button
+            ><button class="button dark" id="mixed">
+              Try a mixed layout <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
+        <div class="lab-grid">
+          <div class="room-panel">
+            <div class="room-meta">
+              <span><i class="status-dot"></i> LIVE DESIGN</span
+              ><span id="room-count">6 POTS / 2 SHELVES</span>
+            </div>
+            <div id="shelves"></div>
+            <p class="room-help">
+              <span aria-hidden="true">↳</span> Select a pot to move it or
+              change its treatment. Keyboard and touch work too.
+            </p>
+            <div id="pot-editor" class="pot-editor"></div>
+          </div>
+          <aside class="readout" aria-labelledby="readout-title">
+            <p class="eyebrow">02 / READ THE DESIGN</p>
+            <h2 id="readout-title">What counts?</h2>
+            <div class="count-pair">
+              <div>
+                <strong id="readings-count">30</strong
+                ><span>height readings</span>
+              </div>
+              <span class="not-equal" aria-label="compared with">/</span>
+              <div>
+                <strong id="units-count">6</strong
+                ><span>experimental units*</span>
+              </div>
+            </div>
+            <div class="readings-control">
+              <label for="readings"
+                >Readings per pot
+                <output id="readings-output" for="readings">5</output></label
+              ><input type="range" id="readings" min="1" max="30" value="5" />
+              <p>
+                Measuring the same pot again adds a reading, not an independent
+                treatment unit.
+              </p>
+            </div>
+            <label class="field-label" for="unit"
+              >How is treatment applied?</label
+            ><select id="unit">
+              <option value="pot">Each pot is treated independently</option>
+              <option value="shared">
+                Pots share a treated tray / reservoir
+              </option>
+              <option value="unknown">I’m not sure yet</option>
+            </select>
+            <p class="micro">
+              *A unit is what receives a treatment independently. This tool does
+              not infer how many independent trays you have.
+            </p>
+            <div id="finding"></div>
+          </aside>
+        </div>
+        <div class="lower-grid">
+          <section class="distribution" aria-labelledby="distribution-title">
+            <p class="eyebrow">03 / CHECK THE PATTERN</p>
+            <h2 id="distribution-title">Treatment meets location</h2>
+            <div id="matrix"></div>
+            <p id="matrix-explainer"></p>
+          </section>
+          <section class="reflection" aria-labelledby="reflection-title">
+            <p class="eyebrow">04 / TAKE IT TO THE CLASSROOM</p>
+            <h2 id="reflection-title">
+              Change the plan.<br />Keep the question.
+            </h2>
+            <p>
+              More measurements cannot separate treatment from shelf when every
+              A pot lives on one shelf and every B pot on the other.
+            </p>
+            <div id="next-step"></div>
+            <button
+              class="button"
+              id="compare"
+              aria-expanded="false"
+              aria-controls="comparison"
+            >
+              Compare with starting plan
+            </button>
+            <div id="comparison" hidden></div>
+          </section>
+        </div>
+      </section>
+      <section class="scope" aria-labelledby="scope-title">
+        <div>
+          <p class="eyebrow">A CHECK, NOT A VERDICT</p>
+          <h2 id="scope-title">No warning is not proof.</h2>
+        </div>
+        <div>
+          <p>
+            TrialMap checks experimental-unit assumptions and
+            <strong>complete treatment–location confounding</strong> in this
+            small declared layout. It does not establish a valid experiment,
+            adequate sample size, statistical power, randomization or safe
+            procedures. Other confounding and environmental differences can
+            remain.
+          </p>
+          <p>
+            For classroom plant planning only. Ask your teacher to review the
+            actual setup. No human, animal or hazardous experiments. Changes
+            stay in this tab and are lost on reload.
+          </p>
+        </div>
+      </section>
+      <details class="sources">
+        <summary>Why these checks? Sources & limitations</summary>
+        <div>
+          <p>
+            <a href="https://www.societyforscience.org/isef/the-basics/"
+              >Society for Science: science-fair basics</a
+            >
+            supports repeated, controlled investigation. It does not establish
+            demand for this prototype.
+          </p>
+          <p>
+            <a href="https://eda.nc3rs.org.uk/experimental-design-unit"
+              >NC3Rs: experimental units</a
+            >
+            explains independent treatment units and repeated observations. Its
+            animal-research examples are adapted here to independently treated
+            plant pots.
+          </p>
+          <p>
+            <a
+              href="https://www.itl.nist.gov/div898/handbook/pri/section3/pri332.htm"
+              >NIST: randomized block designs</a
+            >
+            explains blocking by nuisance factors. Mixing our layout removes one
+            complete confounding pattern; it does not implement or certify a
+            randomized block design.
+          </p>
+          <p>
+            This educational prototype has not been validated with students or
+            teachers. Existing tools such as NC3Rs EDA provide broader
+            experimental-design support. Original app code and artwork;
+            AI-assisted development disclosed.
+          </p>
+        </div>
+      </details>
+    </main>
+    <footer>
+      <span class="brand">TrialMap <span aria-hidden="true">✳</span></span
+      ><span>Plan carefully. Measure thoughtfully.</span
+      ><span>STEMergent prototype / 2026</span>
+    </footer>
+    <div
+      id="announcement"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+    ></div>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>
