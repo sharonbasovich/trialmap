@@ -97,3 +97,20 @@ for (const width of [320, 360]) {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });
 }
+
+test("live printed comparison preserves readable starting and current plans", async ({ page }) => {
+  await page.goto(target);
+  await page.locator("#mixed").click();
+  await page.locator("#readings").fill("12");
+  await page.locator("#compare").click();
+  await expect(page.locator("#comparison")).toContainText("72 readings");
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("#comparison dt")).toHaveCount(4);
+  for (const label of await page.locator("#comparison dt").all()) {
+    await expect(label).toHaveCSS("color", "rgb(0, 0, 0)");
+  }
+  await expect(page.locator("#comparison")).toContainText("30 readings");
+  await expect(page.locator("#comparison")).toContainText("72 readings");
+  await page.screenshot({ path: "live-evidence/print-comparison.png", fullPage: true });
+  await page.pdf({ path: "live-evidence/print-comparison.pdf", printBackground: false });
+});
