@@ -5,7 +5,7 @@ let compared = false;
 const initial = analyze(makeExample("confounded"));
 const $ = (id) => document.getElementById(id);
 const plant = (t, id) =>
-  `<svg viewBox="0 0 80 100" aria-hidden="true"><path d="M40 64V23M40 43L24 31M40 51L56 36" fill="none" stroke="#41694c" stroke-width="2.5"/><path d="M40 28C18 26 18 9 19 8C36 8 43 16 40 28Z" fill="#759b54"/><path d="M40 36C42 14 61 13 64 14C63 31 53 39 40 36Z" fill="#41694c"/><path d="M28 36C12 36 11 24 12 21C25 20 32 26 28 36Z" fill="#9dbd6d"/><path d="M51 43C54 29 68 29 70 31C67 43 61 48 51 43Z" fill="#86a85f"/><path d="M17 61H63L57 91Q40 98 23 91Z" fill="${t === "A" ? "#b6ce77" : "#d99b7d"}" stroke="#426148" stroke-width="1.3"/><path d="M16 59H64V66H16Z" fill="${t === "A" ? "#d4e88c" : "#ecbba8"}" stroke="#426148" stroke-width="1.3"/><path d="M28 71L31 88" stroke="#fff" opacity=".35" stroke-width="3"/><text x="40" y="85" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#183e35">${t}</text></svg>`;
+  `<svg viewBox="0 0 80 100" aria-hidden="true"><path d="M40 64V23M40 43L24 31M40 51L56 36" fill="none" stroke="#41694c" stroke-width="2.5"/><path d="M40 28C18 26 18 9 19 8C36 8 43 16 40 28Z" fill="#759b54"/><path d="M40 36C42 14 61 13 64 14C63 31 53 39 40 36Z" fill="#41694c"/><path d="M28 36C12 36 11 24 12 21C25 20 32 26 28 36Z" fill="#9dbd6d"/><path d="M51 43C54 29 68 29 70 31C67 43 61 48 51 43Z" fill="#86a85f"/><path d="M17 61H63L57 91Q40 98 23 91Z" fill="${t === "A" ? "#b6ce77" : "#d99b7d"}" stroke="#426148" stroke-width="1.3"/><path d="M16 59H64V66H16Z" fill="${t === "A" ? "#d4e88c" : "#ecbba8"}" stroke="#426148" stroke-width="1.3"/><path d="M28 71L31 88" stroke="#fff" opacity=".35" stroke-width="3"/></svg>`;
 function announce(text) {
   $("announcement").textContent = text;
 }
@@ -53,7 +53,7 @@ function render({ focus = null, notice = null } = {}) {
             .filter((p) => p.shelf === s)
             .map(
               (p) =>
-                `<button type="button" class="pot" data-pot="${p.id}" aria-pressed="${p.id === selected}" aria-label="${p.id} ${p.treatment}, pot with treatment ${p.treatment}, shelf ${s}">${plant(p.treatment, p.id)}<span class="pot-label">${p.id}<span class="tag ${p.treatment.toLowerCase()}">${p.treatment}</span></span></button>`,
+                `<button type="button" class="pot" data-pot="${p.id}" aria-pressed="${p.id === selected}" aria-label="${p.id} ${p.treatment}, pot with treatment ${p.treatment}, shelf ${s}">${plant(p.treatment, p.id)}<span class="pot-label">${p.id} <span class="tag ${p.treatment.toLowerCase()}">${p.treatment}</span></span></button>`,
             )
             .join("") ||
           '<span class="empty-shelf">No pots here yet. Select a pot on the other shelf to move it.</span>'
