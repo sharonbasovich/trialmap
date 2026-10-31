@@ -756,8 +756,8 @@ footer .brand {
     width: 65px;
   }
   .pot-editor {
-    grid-template-columns: auto 1fr 1fr;
-    gap: 9px;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   .editor-title {
     grid-column: auto;
@@ -826,6 +826,7 @@ footer .brand {
   }
 }
 @media print {
+  html,
   body {
     background: white;
     color: black;

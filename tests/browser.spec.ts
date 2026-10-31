@@ -34,6 +34,7 @@ test("clear first impression, actual layout correction and repeated readings", a
     .getByRole("button", { name: "Compare with starting plan" })
     .click();
   await expect(page.locator("#comparison")).toContainText("120 readings");
+  await page.screenshot({ path: "evidence/desktop-comparison.png", fullPage: true });
   expect(
     network.every((u) => u.startsWith("http://127.0.0.1:4173/")),
   ).toBeTruthy();
@@ -66,6 +67,9 @@ test("individual pot controls, shared units and missing treatment are honest", a
   await expect(page.locator("#unit")).toHaveValue("shared");
   await expect(page.locator("#units-count")).toHaveText("?");
   await page.locator("#unit").selectOption("pot");
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.screenshot({ path: "evidence/mobile-320-start.png", fullPage: true });
+  await page.setViewportSize({ width: 360, height: 800 });
   for (const id of ["P4", "P5", "P6"]) {
     await page.locator(`[data-pot="${id}"]`).click();
     await page.locator("#pot-treatment").selectOption("A");
@@ -98,6 +102,9 @@ test("mobile, all pots on one shelf, reduced motion and axe", async ({
   await page.goto("/");
   await page.screenshot({ path: "evidence/mobile-start.png", fullPage: true });
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.screenshot({ path: "evidence/mobile-320-start.png", fullPage: true });
+  await page.setViewportSize({ width: 360, height: 800 });
   for (const id of ["P4", "P5", "P6"]) {
     await page.locator(`[data-pot="${id}"]`).click();
     await page.locator("#pot-shelf").selectOption("1");
