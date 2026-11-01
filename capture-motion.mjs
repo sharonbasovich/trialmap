@@ -23,6 +23,7 @@ const mixed=await shot('04-mixed-room','.room-panel');
 if(mixed.units!=='6'||!mixed.finding.includes('This complete confounding is absent.'))throw Error('mixed assertion');
 for(const shelf of [1,2])for(const treatment of ['A','B'])if(!mixed.pots.some(p=>p.includes(`treatment ${treatment}, shelf ${shelf}`)))throw Error('mixed placement');
 await shot('05-mixed-finding','#finding');
+await shot('05b-mixed-readout','.readout');
 await shot('06-mixed-matrix','.distribution');
 await page.locator('#unit').selectOption('shared');
 const shared=await shot('07-shared','.readout');
