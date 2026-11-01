@@ -30,7 +30,7 @@ await shot('06b-unit-focus','.readout');
 await page.locator('#unit').selectOption('shared');
 const shared=await shot('07-shared','.readout');
 if(shared.units!=='?'||shared.readings!=='120'||!shared.finding.includes('First, identify the treatment unit.'))throw Error('shared assumption');
-await page.setViewportSize({width:600,height:1000});
+await page.setViewportSize({width:390,height:844});
 await shot('08-next-question','#next-step');
 await shot('09-scope','.scope');
 await writeFile('motion-evidence/state-proof.json',JSON.stringify({source:'Actual Chromium app screenshots after real UI actions. No DOM or CSS modification. Editorial holds are retimed.',proof},null,2));
