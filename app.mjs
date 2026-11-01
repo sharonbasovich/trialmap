@@ -4,6 +4,35 @@ let selected = "P1";
 let compared = false;
 const initial = analyze(makeExample("confounded"));
 const $ = (id) => document.getElementById(id);
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const potAnimations = new Set();
+function stopPotMotion() {
+  for (const animation of potAnimations) animation.cancel();
+  potAnimations.clear();
+}
+reducedMotion.addEventListener("change", () => {
+  if (reducedMotion.matches) stopPotMotion();
+});
+window.addEventListener("beforeprint", stopPotMotion);
+function movePotsFrom(previous) {
+  if (!previous || reducedMotion.matches || window.matchMedia("print").matches || !CSS.supports("translate", "1px")) return;
+  // Read all final positions before starting animations: only transforms animate.
+  const moves = [...document.querySelectorAll("[data-pot]")].map((pot) => {
+    const from = previous.get(pot.dataset.pot);
+    const to = pot.getBoundingClientRect();
+    return { pot, dx: from ? from.left - to.left : 0, dy: from ? from.top - to.top : 0 };
+  });
+  for (const { pot, dx, dy } of moves) {
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+    if (typeof pot.animate !== "function") continue;
+    const animation = pot.animate(
+      [{ translate: `${dx}px ${dy}px` }, { translate: "0px 0px" }],
+      { duration: 360, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+    potAnimations.add(animation);
+    animation.onfinish = animation.oncancel = () => potAnimations.delete(animation);
+  }
+}
 const plant = (t, id) =>
   `<svg viewBox="0 0 80 100" aria-hidden="true"><path d="M40 64V23M40 43L24 31M40 51L56 36" fill="none" stroke="#41694c" stroke-width="2.5"/><path d="M40 28C18 26 18 9 19 8C36 8 43 16 40 28Z" fill="#759b54"/><path d="M40 36C42 14 61 13 64 14C63 31 53 39 40 36Z" fill="#41694c"/><path d="M28 36C12 36 11 24 12 21C25 20 32 26 28 36Z" fill="#9dbd6d"/><path d="M51 43C54 29 68 29 70 31C67 43 61 48 51 43Z" fill="#86a85f"/><path d="M17 61H63L57 91Q40 98 23 91Z" fill="${t === "A" ? "#b6ce77" : "#d99b7d"}" stroke="#426148" stroke-width="1.3"/><path d="M16 59H64V66H16Z" fill="${t === "A" ? "#d4e88c" : "#ecbba8"}" stroke="#426148" stroke-width="1.3"/><path d="M28 71L31 88" stroke="#fff" opacity=".35" stroke-width="3"/></svg>`;
 function announce(text) {
@@ -41,7 +70,12 @@ function finding(a) {
       : "Equal pot counts do not establish enough independent trials.",
   };
 }
-function render({ focus = null, notice = null } = {}) {
+function render({ focus = null, notice = null, movePots = false } = {}) {
+  // Capture the visible, possibly in-flight position before cancelling an old move.
+  const previous = movePots && !reducedMotion.matches
+    ? new Map([...document.querySelectorAll("[data-pot]")].map((pot) => [pot.dataset.pot, pot.getBoundingClientRect()]))
+    : null;
+  stopPotMotion();
   const a = analyze(state);
   const p = state.pots.find((p) => p.id === selected) || state.pots[0];
   selected = p.id;
@@ -86,6 +120,7 @@ function render({ focus = null, notice = null } = {}) {
     : "Compare with starting plan";
   $("comparison").innerHTML =
     `<dl><dt>Starting plan</dt><dd>Current plan</dd><dt>${initial.readingCount} readings</dt><dd>${a.readingCount} readings</dd><dt>${initial.experimentalUnitCount} independent pots*</dt><dd>${a.experimentalUnitCount === null ? "Independent units unknown" : a.experimentalUnitCount + " independent pots*"}</dd><dt>Complete shelf confounding</dt><dd>${a.completeConfounding ? "Still present" : a.oneTreatment ? "Comparison unavailable" : "Not detected in declared layout"}</dd></dl><p>*Only when each pot receives treatment independently. This compares layouts, not expected plant outcomes.</p>`;
+  movePotsFrom(previous);
   if (focus) {
     const el = document.querySelector(focus);
     el?.focus({ preventScroll: true });
@@ -109,6 +144,7 @@ $("pot-editor").addEventListener("change", (e) => {
   const focus = "#" + e.target.id;
   render({
     focus,
+    movePots: e.target.id === "pot-shelf",
     notice: `Pot ${p.id}: treatment ${p.treatment}, shelf ${p.shelf}. ${finding(analyze(state)).title}`,
   });
 });
@@ -129,6 +165,7 @@ $("confounded").addEventListener("click", () => {
   state = makeExample("confounded");
   selected = "P1";
   render({
+    movePots: true,
     notice:
       "Starting plan restored: six independently treated pots, five readings each, complete treatment and shelf confounding.",
   });
@@ -137,6 +174,7 @@ $("mixed").addEventListener("click", () => {
   state = { ...state, pots: makeExample("mixed").pots };
   selected = "P3";
   render({
+    movePots: true,
     notice:
       "Mixed example loaded. Each shelf now has both treatments. Only the complete treatment and shelf confounding pattern is removed.",
   });
@@ -147,3 +185,4 @@ $("compare").addEventListener("click", () => {
 });
 $("print").addEventListener("click", () => window.print());
 render();
+

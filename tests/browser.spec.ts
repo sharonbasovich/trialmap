@@ -206,6 +206,17 @@ test("shelf motion preserves identity, immediate findings and keyboard focus", a
   await pot.focus();
   await page.keyboard.press("Enter");
   const before = await pot.boundingBox();
+  // Freeze only this test's movement effects at creation, avoiding a 360ms CI race.
+  await page.evaluate(() => {
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (...args) {
+      const effect = animate.apply(this, args);
+      if (Array.isArray(args[0]) && args[0].some((k) => "translate" in k)) {
+        effect.pause(); effect.currentTime = 0;
+      }
+      return effect;
+    };
+  });
   await page.locator("#pot-shelf").focus();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
@@ -260,4 +271,61 @@ test("interrupted shelf moves, no-op presets, reduced-motion changes and print s
   expect(await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getKeyframes().some((k) => "translate" in k)).length)).toBe(0);
   await expect(page.locator("#finding")).toContainText("complete confounding is absent");
   expect(rejections).toEqual([]);
+});
+
+
+test("mobile movement stays inside the room through all-one-shelf and reset", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await page.evaluate(() => {
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (...args) {
+      const effect = animate.apply(this, args);
+      if (Array.isArray(args[0]) && args[0].some((k) => "translate" in k)) {
+        effect.pause(); effect.currentTime = 0;
+      }
+      return effect;
+    };
+  });
+  const checkRoom = async () => {
+    const room = await page.locator(".room-panel").boundingBox();
+    for (const pot of await page.locator(".pot").all()) {
+      const b = await pot.boundingBox();
+      expect(b.x).toBeGreaterThanOrEqual(room.x);
+      expect(b.x + b.width).toBeLessThanOrEqual(room.x + room.width);
+      expect(b.y).toBeGreaterThanOrEqual(room.y);
+      expect(b.y + b.height).toBeLessThanOrEqual(room.y + room.height);
+    }
+  };
+  for (const id of ["P4", "P5", "P6"]) {
+    await page.locator(`[data-pot="${id}"]`).click();
+    await page.locator("#pot-shelf").selectOption("1");
+    await page.evaluate(() => document.getAnimations().forEach((a) => { a.currentTime = 180; }));
+    await checkRoom();
+    await page.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
+  }
+  await expect(page.locator(".empty-shelf")).toBeVisible();
+  await page.locator(".room-panel").screenshot({ path: "evidence/mobile-motion-one-shelf.png" });
+  await page.locator("#confounded").click();
+  await page.evaluate(() => document.getAnimations().forEach((a) => { a.currentTime = 180; }));
+  await checkRoom();
+  await page.locator(".room-panel").screenshot({ path: "evidence/mobile-motion-reset-mid.png" });
+  await page.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
+  await checkRoom();
+  await page.locator(".room-panel").screenshot({ path: "evidence/mobile-motion-reset-end.png" });
+  await page.evaluate(() => {
+    document.querySelector("#mixed").click();
+    document.querySelector("[data-pot=P2]").click();
+  });
+  expect(await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getKeyframes().some((k) => "translate" in k)).length)).toBe(0);
+  await page.evaluate(() => {
+    document.querySelector("#confounded").click();
+    const readings = document.querySelector("#readings");
+    readings.value = "20";
+    readings.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect(page.locator("#readings-count")).toHaveText("120");
+  await expect(page.locator("#units-count")).toHaveText("6");
+  expect(await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getKeyframes().some((k) => "translate" in k)).length)).toBe(0);
 });
