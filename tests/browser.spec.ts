@@ -205,7 +205,8 @@ test("shelf motion preserves identity, immediate findings and keyboard focus", a
   const pot = page.locator('[data-pot="P3"]');
   await pot.focus();
   await page.keyboard.press("Enter");
-  const before = await pot.boundingBox();
+  const position = () => pot.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + scrollX, y: r.y + scrollY }; });
+  const before = await position();
   // Freeze only this test's movement effects at creation, avoiding a 360ms CI race.
   await page.evaluate(() => {
     const animate = Element.prototype.animate;
@@ -229,14 +230,14 @@ test("shelf motion preserves identity, immediate findings and keyboard focus", a
     return motions.length;
   });
   expect(count).toBeGreaterThan(0);
-  const start = await pot.boundingBox();
+  const start = await position();
   expect(Math.abs(start.x - before.x)).toBeLessThan(1);
   expect(Math.abs(start.y - before.y)).toBeLessThan(1);
   await page.locator(".room-panel").screenshot({ path: "evidence/motion-start.png" });
   await page.evaluate(() => document.getAnimations().forEach((a) => { a.currentTime = 180; }));
   await page.locator(".room-panel").screenshot({ path: "evidence/motion-mid.png" });
   await page.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
-  const end = await pot.boundingBox();
+  const end = await position();
   expect(end.y).toBeGreaterThan(before.y + 80);
   await page.locator(".room-panel").screenshot({ path: "evidence/motion-end.png" });
   await expect(pot).toHaveAttribute("aria-pressed", "true");
