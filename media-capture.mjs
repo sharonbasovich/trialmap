@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 
 await fs.mkdir('media-capture',{recursive:true});
 const browser=await chromium.launch();
-const context=await browser.newContext({viewport:{width:1440,height:900},deviceScaleFactor:2,recordVideo:{dir:'media-capture',size:{width:1440,height:900}},reducedMotion:'no-preference'});
+const context=await browser.newContext({viewport:{width:1440,height:900},deviceScaleFactor:2,recordVideo:{dir:'media-capture',size:{width:2880,height:1800}},reducedMotion:'no-preference'});
 const page=await context.newPage();
 const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
 await page.goto('http://127.0.0.1:4173/');
@@ -52,5 +52,5 @@ await at(53.9,'closing reference',()=>snap('07-close'));
 await at(56,'end',async()=>{});
 assert.deepEqual(errors,[]);
 const files={};for(const f of ['index.html','app.mjs','model.mjs','style.css'])files[f]=createHash('sha256').update(await fs.readFile(f)).digest('hex');
-await fs.writeFile('media-capture/capture-audit.json',JSON.stringify({sourceCommit:'0f8acc25665aa9bdcb23c0ea2d68cef4fcdacc54',files,events,errors,viewport:{width:1440,height:900},deviceScaleFactor:2,videoSize:{width:1440,height:900},slate:'magenta excluded before picture; visual alignment determined from encoded frames',duration:56,sourceMutation:false},null,2));
+await fs.writeFile('media-capture/capture-audit.json',JSON.stringify({sourceCommit:'0f8acc25665aa9bdcb23c0ea2d68cef4fcdacc54',files,events,errors,viewport:{width:1440,height:900},deviceScaleFactor:2,videoSize:{width:2880,height:1800},slate:'magenta excluded before picture; visual alignment determined from encoded frames',duration:56,sourceMutation:false},null,2));
 await context.close();await browser.close();
