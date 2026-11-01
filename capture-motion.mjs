@@ -25,9 +25,12 @@ for(const shelf of [1,2])for(const treatment of ['A','B'])if(!mixed.pots.some(p=
 await shot('05-mixed-finding','#finding');
 await shot('05b-mixed-readout','.readout');
 await shot('06-mixed-matrix','.distribution');
+await page.locator('#unit').focus();
+await shot('06b-unit-focus','.readout');
 await page.locator('#unit').selectOption('shared');
 const shared=await shot('07-shared','.readout');
 if(shared.units!=='?'||shared.readings!=='120'||!shared.finding.includes('First, identify the treatment unit.'))throw Error('shared assumption');
+await page.setViewportSize({width:600,height:1000});
 await shot('08-next-question','#next-step');
 await shot('09-scope','.scope');
 await writeFile('motion-evidence/state-proof.json',JSON.stringify({source:'Actual Chromium app screenshots after real UI actions. No DOM or CSS modification. Editorial holds are retimed.',proof},null,2));
