@@ -17,7 +17,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
-          import hashlib,io,json,os,pathlib,urllib.request,zipfile
+          import hashlib,io,json,os,pathlib,urllib.request,urllib.parse,zipfile
+          class SafeRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self,req,fp,code,msg,headers,newurl):
+              result=super().redirect_request(req,fp,code,msg,headers,newurl)
+              if urllib.parse.urlparse(req.full_url).netloc != urllib.parse.urlparse(newurl).netloc:
+                result.remove_header('Authorization')
+              return result
+          opener=urllib.request.build_opener(SafeRedirect())
           root=pathlib.Path('media-recovery/20261101')
           root.mkdir(parents=True,exist_ok=True)
           artifacts=[
@@ -26,7 +33,7 @@ jobs:
           report=[]
           for aid,digest,short in artifacts:
             request=urllib.request.Request(f'https://api.github.com/repos/sharonbasovich/trialmap/actions/artifacts/{aid}/zip',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
-            data=urllib.request.urlopen(request).read()
+            data=opener.open(request,timeout=60).read()
             assert hashlib.sha256(data).hexdigest()==digest
             src=zipfile.ZipFile(io.BytesIO(data))
             assert src.testzip() is None
