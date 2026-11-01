@@ -13,6 +13,7 @@ for(let frame=0;frame<240;frame++){
   // Real keyboard interaction; the app calculates every displayed number.
   if(frame===48) await page.locator('#readings').focus();
   if(frame>=48 && frame<=118 && (frame-48)%5===0) await page.keyboard.press('ArrowRight');
+  if(frame===144) await page.locator('.readout h2').click();
   const readings=await page.locator('#readings-count').innerText();
   const units=await page.locator('#units-count').innerText();
   if(units!=='6') throw new Error('Unexpected scientific unit state');
