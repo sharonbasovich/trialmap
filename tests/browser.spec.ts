@@ -197,3 +197,67 @@ test("open comparison stays readable in printed classroom plan", async ({ page }
   await page.emulateMedia({ media: "screen" });
   await expect(page.locator("#comparison dt").first()).toHaveCSS("color", "rgb(192, 209, 181)");
 });
+
+
+test("shelf motion preserves identity, immediate findings and keyboard focus", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  const pot = page.locator('[data-pot="P3"]');
+  await pot.focus();
+  await page.keyboard.press("Enter");
+  const before = await pot.boundingBox();
+  await page.locator("#pot-shelf").focus();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#pot-shelf")).toBeFocused();
+  await expect(page.locator("#finding")).toContainText("complete confounding is absent");
+  await expect(pot).toHaveAccessibleName("P3 A, pot with treatment A, shelf 2");
+  const count = await page.evaluate(() => {
+    const motions = document.getAnimations().filter((a) => a.effect?.getKeyframes().some((k) => "translate" in k));
+    for (const a of motions) { a.pause(); a.currentTime = 0; }
+    return motions.length;
+  });
+  expect(count).toBeGreaterThan(0);
+  const start = await pot.boundingBox();
+  expect(Math.abs(start.x - before.x)).toBeLessThan(1);
+  expect(Math.abs(start.y - before.y)).toBeLessThan(1);
+  await page.locator(".room-panel").screenshot({ path: "evidence/motion-start.png" });
+  await page.evaluate(() => document.getAnimations().forEach((a) => { a.currentTime = 180; }));
+  await page.locator(".room-panel").screenshot({ path: "evidence/motion-mid.png" });
+  await page.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
+  const end = await pot.boundingBox();
+  expect(end.y).toBeGreaterThan(before.y + 80);
+  await page.locator(".room-panel").screenshot({ path: "evidence/motion-end.png" });
+  await expect(pot).toHaveAttribute("aria-pressed", "true");
+});
+
+test("interrupted shelf moves, no-op presets, reduced-motion changes and print settle safely", async ({ page }) => {
+  const rejections = [];
+  await page.exposeFunction("captureRejection", (reason) => rejections.push(reason));
+  await page.addInitScript(() => window.addEventListener("unhandledrejection", (e) => window.captureRejection(String(e.reason))));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  // Same layout must not animate. Rapid real click events must settle to the last command.
+  await page.locator("#confounded").click();
+  expect(await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getKeyframes().some((k) => "translate" in k)).length)).toBe(0);
+  await page.evaluate(() => {
+    document.querySelector("#mixed").click();
+    document.getAnimations().forEach((a) => { a.pause(); a.currentTime = 100; });
+    document.querySelector("#confounded").click();
+    document.querySelector("#mixed").click();
+  });
+  await expect(page.locator("#finding")).toContainText("complete confounding is absent");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(() => page.evaluate(() => document.getAnimations().length)).toBe(0);
+  await page.locator("#confounded").click();
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  await expect(page.locator("#finding")).toContainText("tangled");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.evaluate(() => {
+    document.querySelector("#mixed").click();
+    window.dispatchEvent(new Event("beforeprint"));
+  });
+  expect(await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getKeyframes().some((k) => "translate" in k)).length)).toBe(0);
+  await expect(page.locator("#finding")).toContainText("complete confounding is absent");
+  expect(rejections).toEqual([]);
+});
