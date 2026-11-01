@@ -242,6 +242,7 @@ h1 em {
 .preset-receipt strong { display: block; }
 .preset-receipt .button { flex-shrink: 0; }
 .preset-receipt .button:disabled { opacity: 0.5; cursor: default; }
+.preset-receipt .button:disabled:hover { transform: none; background: transparent; }
 .room-panel {
   background: #e6ebdb;
   border: 1px solid #cdd7bf;
@@ -718,7 +719,6 @@ footer .brand {
   }
 }
 @media (max-width: 760px) {
-  .preset-receipt { align-items: stretch; flex-direction: column; gap: 10px; }
   .topbar {
     padding: 18px 5%;
     gap: 10px;
