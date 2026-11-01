@@ -1,0 +1,20 @@
+[
+  {
+    "artifact_id": 13075413909,
+    "source_archive_sha256": "18240762cc726b3eed211f4acc62cc2b8f0fa24dd0c94e013f09b0769382c257",
+    "file": "capture-787bad74-deduplicated.zip",
+    "sha256": "4e4d9e991d0e4fdce57256c94edeb97a8c0b78020f4a50f38ac7a2eb29de2655",
+    "bytes": 989373,
+    "original_entries": 12,
+    "unique_entries": 12
+  },
+  {
+    "artifact_id": 13074134278,
+    "source_archive_sha256": "303d5c5ddea513351215473dca74dc082a30fc5c49da26008abad375b0488af2",
+    "file": "capture-9168c7b-deduplicated.zip",
+    "sha256": "1c5e4ecf1e2612d1ad2db8ef492ab6a07f8a5a7a583f5b599c2f011e76fab643",
+    "bytes": 2310427,
+    "original_entries": 242,
+    "unique_entries": 19
+  }
+]
