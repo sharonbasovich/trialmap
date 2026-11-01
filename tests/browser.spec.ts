@@ -330,3 +330,94 @@ test("mobile movement stays inside the room through all-one-shelf and reset", as
   await expect(page.locator("#units-count")).toHaveText("6");
   expect(await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getKeyframes().some((k) => "translate" in k)).length)).toBe(0);
 });
+
+// Recover only preset replacement, not a general edit history.
+const planSnapshot = async (page) => ({
+  pots: await page.locator('[data-pot]').evaluateAll((els) => els.map((el) => ({
+    id: el.dataset.pot, label: el.getAttribute('aria-label'), selected: el.getAttribute('aria-pressed'),
+  })).sort((a, b) => a.id.localeCompare(b.id))),
+  readings: await page.locator('#readings').inputValue(),
+  unit: await page.locator('#unit').inputValue(),
+});
+
+test('preset undo restores the exact custom plan, selection and keyboard flow', async ({ page }) => {
+  await page.goto('/');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('#undo-preset')).toBeDisabled();
+  await page.locator('[data-pot=P2]').click();
+  await page.locator('#pot-shelf').selectOption('2');
+  await page.locator('#pot-treatment').selectOption('B');
+  await page.locator('#readings').fill('23');
+  await page.locator('#unit').selectOption('shared');
+  const original = await planSnapshot(page);
+  for (const preset of ['mixed', 'confounded']) {
+    await page.locator('#' + preset).click();
+    await expect(page.locator('#undo-preset')).toBeEnabled();
+    await expect(page.locator('#announcement')).toContainText('Undo example change is available');
+    await page.locator('[data-pot=P6]').click(); // Selection is not a plan edit.
+    await page.locator('#compare').click(); // Neither is opening/closing comparison.
+    await page.locator('#undo-preset').focus();
+    await page.keyboard.press('Enter');
+    expect(await planSnapshot(page)).toEqual(original);
+    await expect(page.locator('#' + preset)).toBeFocused();
+    await expect(page.locator('#undo-preset')).toBeDisabled();
+    await expect(page.locator('#announcement')).toContainText('Previous plan restored. Selected pot P2.');
+    await expect(page.locator('#units-count')).toHaveText('?');
+  }
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+});
+
+test('only the last meaningful preset is recoverable; edits invalidate stale undo', async ({ page }) => {
+  await page.goto('/');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.locator('#confounded').click(); // Initial no-op has no history.
+  await expect(page.locator('#undo-preset')).toBeDisabled();
+  await page.locator('#mixed').click();
+  const mixed = await planSnapshot(page);
+  await page.locator('#confounded').click();
+  await page.locator('#confounded').click(); // No-op must not erase recoverable mixed plan.
+  await page.locator('#undo-preset').click();
+  expect(await planSnapshot(page)).toEqual(mixed);
+  await expect(page.locator('#undo-preset')).toBeDisabled();
+  for (const field of ['readings', 'unit', 'pot-treatment', 'pot-shelf']) {
+    await page.locator('#confounded').click();
+    await page.locator('#mixed').click();
+    await expect(page.locator('#undo-preset')).toBeEnabled();
+    if (field === 'readings') await page.locator('#readings').fill('20');
+    if (field === 'unit') await page.locator('#unit').selectOption('unknown');
+    if (field === 'pot-treatment') await page.locator('#pot-treatment').selectOption('B');
+    if (field === 'pot-shelf') await page.locator('#pot-shelf').selectOption('1');
+    await expect(page.locator('#undo-preset')).toBeDisabled();
+  }
+  await page.locator('#mixed').click();
+  await page.reload();
+  await expect(page.locator('#undo-preset')).toBeDisabled();
+});
+
+test('preset recovery is stable at mobile widths, during motion and on print', async ({ page }) => {
+  await page.goto('/');
+  for (const width of [320, 360]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.locator('#mixed').click();
+    await expect(page.locator('#undo-preset')).toBeEnabled();
+    const receipt = await page.locator('#preset-receipt').boundingBox();
+    const button = await page.locator('#undo-preset').boundingBox();
+    expect(button.x).toBeGreaterThanOrEqual(receipt.x);
+    expect(button.x + button.width).toBeLessThanOrEqual(receipt.x + receipt.width);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    await page.screenshot({ path: `evidence/preset-undo-${width}.png`, fullPage: true });
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.locator('#undo-preset').click();
+    await expect(page.locator('#finding')).toContainText('tangled');
+  }
+  await page.evaluate(() => {
+    document.querySelector('#mixed').click();
+    document.querySelector('#undo-preset').click();
+  });
+  await expect(page.locator('#finding')).toContainText('tangled');
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('#preset-receipt')).toBeHidden();
+  await page.emulateMedia({ media: 'screen' });
+  await expect(page.locator('#preset-receipt')).toBeVisible();
+  await expect(page.locator('#undo-preset')).toBeDisabled();
+});

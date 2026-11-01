@@ -2,6 +2,14 @@ import { analyze, makeExample } from "./model.mjs";
 let state = makeExample("confounded");
 let selected = "P1";
 let compared = false;
+let presetUndo = null;
+const copyPlan = (plan) => ({ ...plan, pots: plan.pots.map((pot) => ({ ...pot })) });
+function rememberPreset(next, trigger, label) {
+  // A no-op example must not replace the recoverable custom plan.
+  if (JSON.stringify(next) !== JSON.stringify(state)) {
+    presetUndo = { plan: copyPlan(state), selected, trigger, label };
+  }
+}
 const initial = analyze(makeExample("confounded"));
 const $ = (id) => document.getElementById(id);
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -77,6 +85,8 @@ function render({ focus = null, notice = null, movePots = false } = {}) {
     : null;
   stopPotMotion();
   const a = analyze(state);
+  $("undo-preset").disabled = !presetUndo;
+  $("preset-result").textContent = presetUndo?.label ?? "Explore the examples.";
   const p = state.pots.find((p) => p.id === selected) || state.pots[0];
   selected = p.id;
   $("shelves").innerHTML = [1, 2]
@@ -138,8 +148,13 @@ $("shelves").addEventListener("click", (e) => {
 });
 $("pot-editor").addEventListener("change", (e) => {
   const p = state.pots.find((p) => p.id === selected);
-  if (e.target.id === "pot-treatment") p.treatment = e.target.value;
-  else if (e.target.id === "pot-shelf") p.shelf = Number(e.target.value);
+  if (e.target.id === "pot-treatment") {
+    if (p.treatment !== e.target.value) presetUndo = null;
+    p.treatment = e.target.value;
+  } else if (e.target.id === "pot-shelf") {
+    if (p.shelf !== Number(e.target.value)) presetUndo = null;
+    p.shelf = Number(e.target.value);
+  }
   else return;
   const focus = "#" + e.target.id;
   render({
@@ -149,6 +164,7 @@ $("pot-editor").addEventListener("change", (e) => {
   });
 });
 $("readings").addEventListener("input", (e) => {
+  if (state.readingsPerPot !== Number(e.target.value)) presetUndo = null;
   state.readingsPerPot = Number(e.target.value);
   render();
 });
@@ -158,25 +174,42 @@ $("readings").addEventListener("change", () =>
   ),
 );
 $("unit").addEventListener("change", (e) => {
+  if (state.treatmentUnit !== e.target.value) presetUndo = null;
   state.treatmentUnit = e.target.value;
   render({ notice: finding(analyze(state)).title });
 });
 $("confounded").addEventListener("click", () => {
-  state = makeExample("confounded");
+  const next = makeExample("confounded");
+  rememberPreset(next, "#confounded", "Starting plan restored.");
+  state = next;
   selected = "P1";
   render({
     movePots: true,
     notice:
-      "Starting plan restored: six independently treated pots, five readings each, complete treatment and shelf confounding.",
+      "Starting plan restored: six independently treated pots, five readings each, complete treatment and shelf confounding." + (presetUndo ? " Undo example change is available." : ""),
   });
 });
 $("mixed").addEventListener("click", () => {
-  state = { ...state, pots: makeExample("mixed").pots };
+  const next = { ...state, pots: makeExample("mixed").pots };
+  rememberPreset(next, "#mixed", "Mixed layout applied.");
+  state = next;
   selected = "P3";
   render({
     movePots: true,
     notice:
-      "Mixed example loaded. Each shelf now has both treatments. Only the complete treatment and shelf confounding pattern is removed.",
+      "Mixed example loaded. Each shelf now has both treatments. Only the complete treatment and shelf confounding pattern is removed." + (presetUndo ? " Undo example change is available." : ""),
+  });
+});
+$("undo-preset").addEventListener("click", () => {
+  if (!presetUndo) return;
+  const previous = presetUndo;
+  state = copyPlan(previous.plan);
+  selected = previous.selected;
+  presetUndo = null;
+  render({
+    focus: previous.trigger,
+    movePots: true,
+    notice: `Previous plan restored. Selected pot ${selected}. ${finding(analyze(state)).title}`,
   });
 });
 $("compare").addEventListener("click", () => {
