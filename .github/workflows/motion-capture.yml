@@ -1,0 +1,27 @@
+name: TrialMap actual interaction capture
+on:
+  push:
+    branches: [review/trialmap-motion-craft-20261101]
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check && npm test
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          node server.mjs > /tmp/trialmap-server.log 2>&1 &
+          node capture-motion.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trialmap-actual-motion
+          path: motion-evidence/
+          retention-days: 7
