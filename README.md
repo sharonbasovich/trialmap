@@ -1,6 +1,6 @@
 # TrialMap
 
-**Reviewed educational prototype. [Open the live demo](https://sharonbasovich.github.io/trialmap/). Not a submitted entry or a scientific-validity guarantee.**
+**Reviewed educational prototype. [Open the live demo](https://sharonbasovich.github.io/trialmap/). [Submitted to STEMergent Hacks 2026](https://devpost.com/software/trialmap-we0k6o). Not a scientific-validity guarantee.**
 An educational classroom plant-trial planner: distinguish repeated readings from independent treatment units, and spot complete treatment–location confounding before growing plants.
 
 ## Run
@@ -21,4 +21,4 @@ Two treatments and two shelf locations, six pots in the UI. A unit count is know
 
 All data stays in memory in the tab; no persistence, accounts, telemetry or automatic uploads. Reload discards changes. Printing uses the browser/system print destination selected by the user. The static host receives ordinary page requests; scientific inputs are not sent by app code.
 
-Sources and adaptation notes are in the app and BUILD-BASELINE.md. Original source and inline vector artwork, AI-assisted. Fresh implementation started October31 2026 at04:02UTC, after verified event opening04:00UTC. No pre-window code/assets. The independently reviewed four-file app source is `f6c67e0e05c62e62026e9d15a50d662713015f85`. No contest submission is claimed. Source/domain and actual Chromium desktop/mobile/print reviews passed; this is not teacher/student validation. Live-host verification runs separately in the Verify live TrialMap Pages workflow.
+Sources and adaptation notes are in the app and BUILD-BASELINE.md. Original source and inline vector artwork, AI-assisted. Fresh implementation started October31 2026 at04:02UTC, after verified event opening04:00UTC. No pre-window code/assets. The initial independently reviewed four-file app source is `f6c67e0e05c62e62026e9d15a50d662713015f85`; subsequent reviewed changes are in [current source](https://github.com/sharonbasovich/trialmap/tree/main). Source/domain and actual Chromium desktop/mobile/print reviews passed; this is not teacher/student validation. Live-host verification runs separately in the Verify live TrialMap Pages workflow.
