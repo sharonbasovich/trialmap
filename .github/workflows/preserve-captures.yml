@@ -1,0 +1,60 @@
+name: Preserve verified TrialMap capture inputs
+on:
+  push:
+    branches: [review/trialmap-media-recovery-20261101]
+    paths: [.github/workflows/preserve-captures.yml]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover exact existing capture artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import hashlib,io,json,os,pathlib,urllib.request,zipfile
+          root=pathlib.Path('media-recovery/20261101')
+          root.mkdir(parents=True,exist_ok=True)
+          artifacts=[
+            (13075413909,'18240762cc726b3eed211f4acc62cc2b8f0fa24dd0c94e013f09b0769382c257','787bad74'),
+            (13074134278,'303d5c5ddea513351215473dca74dc082a30fc5c49da26008abad375b0488af2','9168c7b')]
+          report=[]
+          for aid,digest,short in artifacts:
+            request=urllib.request.Request(f'https://api.github.com/repos/sharonbasovich/trialmap/actions/artifacts/{aid}/zip',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+            data=urllib.request.urlopen(request).read()
+            assert hashlib.sha256(data).hexdigest()==digest
+            src=zipfile.ZipFile(io.BytesIO(data))
+            assert src.testzip() is None
+            seen={};mapping={}
+            path=root/f'capture-{short}-deduplicated.zip'
+            with zipfile.ZipFile(path,'w',zipfile.ZIP_DEFLATED) as dest:
+              for name in sorted(src.namelist()):
+                b=src.read(name);h=hashlib.sha256(b).hexdigest()
+                if h not in seen:
+                  seen[h]=name
+                  info=zipfile.ZipInfo(name,(2026,11,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED
+                  dest.writestr(info,b)
+                mapping[name]={'path':seen[h],'sha256':h,'size':len(b)}
+              info=zipfile.ZipInfo('recovery-map.json',(2026,11,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED
+              dest.writestr(info,json.dumps({'original_archive_sha256':digest,'entries':mapping},sort_keys=True,indent=2))
+            with zipfile.ZipFile(path) as recovered:
+              assert recovered.testzip() is None
+              for name,entry in mapping.items():
+                restored=recovered.read(entry['path'])
+                assert restored==src.read(name)
+            report.append({'artifact_id':aid,'source_archive_sha256':digest,'file':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'original_entries':len(mapping),'unique_entries':len(seen)})
+          (root/'manifest.json').write_text(json.dumps(report,indent=2)+'\n')
+          PY
+      - name: Commit recovery inputs on this review branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add media-recovery/20261101/
+          git diff --cached --quiet && exit 0
+          git commit -m "Preserve verified deduplicated actual capture inputs [skip ci]"
+          git push origin HEAD:review/trialmap-media-recovery-20261101
