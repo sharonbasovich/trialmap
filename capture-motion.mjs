@@ -1,27 +1,33 @@
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
-await mkdir('motion-evidence/frames',{recursive:true});
+await mkdir('motion-evidence',{recursive:true});
 const browser=await chromium.launch();
-const context=await browser.newContext({viewport:{width:1440,height:1200},deviceScaleFactor:2,reducedMotion:'reduce'});
-const page=await context.newPage();
-await page.goto('http://127.0.0.1:4173'); await page.locator('#readings-count').waitFor();
-await page.locator('.readout').scrollIntoViewIfNeeded();
-await page.screenshot({path:'motion-evidence/actual-context.png',fullPage:true});
-const before=await page.locator('#finding').innerText();
-const evidence=[];
-for(let frame=0;frame<240;frame++){
-  // Real keyboard interaction; the app calculates every displayed number.
-  if(frame===48) await page.locator('#readings').focus();
-  if(frame>=48 && frame<=118 && (frame-48)%5===0) await page.keyboard.press('ArrowRight');
-  if(frame===144) await page.locator('.readout h2').click();
-  const readings=await page.locator('#readings-count').innerText();
-  const units=await page.locator('#units-count').innerText();
-  if(units!=='6') throw new Error('Unexpected scientific unit state');
-  if(frame===0 && readings!=='30')throw new Error('Wrong baseline');
-  if(frame>=118 && readings!=='120')throw new Error('Wrong final count');
-  if((await page.locator('#finding').innerText())!==before)throw new Error('Warning changed');
-  await page.locator('.readout').screenshot({path:`motion-evidence/frames/${String(frame).padStart(4,'0')}.png`,animations:'disabled'});
-  evidence.push({frame,readings,units});
+const page=await browser.newPage({viewport:{width:1440,height:1200},deviceScaleFactor:2,reducedMotion:'reduce'});
+await page.goto('http://127.0.0.1:4173');
+await page.locator('#readings-count').waitFor();
+const proof=[];
+async function shot(name,selector){
+ const state={name,readings:await page.locator('#readings-count').innerText(),units:await page.locator('#units-count').innerText(),unit:await page.locator('#unit').inputValue(),finding:await page.locator('#finding').innerText(),nextQuestion:await page.locator('#next-step').innerText(),pots:await page.locator('[data-pot]').evaluateAll(xs=>xs.map(x=>x.getAttribute('aria-label')))};
+ proof.push(state); await page.locator(selector).screenshot({path:`motion-evidence/${name}.png`,animations:'disabled'}); return state;
 }
-await writeFile('motion-evidence/state-proof.json',JSON.stringify({source:'Actual browser application, keyboard input, no UI reconstruction',duration:10,fps:24,warning:before,frames:evidence},null,2));
+await shot('01-start-room','.room-panel');
+await page.locator('#readings').focus();
+for(let i=0;i<15;i++)await page.keyboard.press('ArrowRight');
+await page.locator('.readout h2').click();
+if(await page.locator('#readings-count').innerText()!=='120')throw Error('reading state');
+await shot('02-confounded','.readout');
+await page.locator('#mixed').focus();
+await shot('03-layout-action','.workspace-heading');
+await page.locator('#mixed').click();
+const mixed=await shot('04-mixed-room','.room-panel');
+if(mixed.units!=='6'||!mixed.finding.includes('This complete confounding is absent.'))throw Error('mixed assertion');
+for(const shelf of [1,2])for(const treatment of ['A','B'])if(!mixed.pots.some(p=>p.includes(`treatment ${treatment}, shelf ${shelf}`)))throw Error('mixed placement');
+await shot('05-mixed-finding','#finding');
+await shot('06-mixed-matrix','.distribution');
+await page.locator('#unit').selectOption('shared');
+const shared=await shot('07-shared','.readout');
+if(shared.units!=='?'||shared.readings!=='120'||!shared.finding.includes('First, identify the treatment unit.'))throw Error('shared assumption');
+await shot('08-next-question','#next-step');
+await shot('09-scope','.scope');
+await writeFile('motion-evidence/state-proof.json',JSON.stringify({source:'Actual Chromium app screenshots after real UI actions. No DOM or CSS modification. Editorial holds are retimed.',proof},null,2));
 await browser.close();
