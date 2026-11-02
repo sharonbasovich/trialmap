@@ -9,7 +9,7 @@
       content="See the difference between more readings and independent experiments. A classroom plant-trial planning prototype."
     />
     <title>TrialMap · Make the experiment count</title>
-    <link rel="stylesheet" href="./style.css?v=548f5784e363" />
+    <link rel="stylesheet" href="./style.css?v=504beea62cfa" />
   </head>
   <body>
     <a class="skip" href="#workspace">Skip to experiment workspace</a>
@@ -134,6 +134,19 @@
               A pot lives on one shelf and every B pot on the other.
             </p>
             <div id="next-step"></div>
+            <div class="checkpoint-controls">
+              <p id="checkpoint-status"></p>
+              <div class="checkpoint-actions">
+                <button class="button" id="capture-checkpoint" type="button">Capture current plan</button>
+                <button class="button" id="cancel-checkpoint" type="button" hidden>Cancel replacement</button>
+                <button class="button" id="restore-checkpoint" type="button" disabled>Restore checkpoint</button>
+                <button class="button" id="undo-checkpoint" type="button" hidden>Undo restore</button>
+              </div>
+              <div id="comparison-source" hidden>
+                <label for="comparison-mode">Compare current plan with</label>
+                <select id="comparison-mode"><option value="starting">Starting example</option><option value="checkpoint">My checkpoint</option></select>
+              </div>
+            </div>
             <button
               class="button"
               id="compare"
@@ -214,7 +227,7 @@
       role="status"
       aria-live="polite"
     ></div>
-    <script type="module" src="./app.mjs?v=32323f38e48c"></script>
+    <script type="module" src="./app.mjs?v=f8091f34257b"></script>
   </body>
 </html>
 

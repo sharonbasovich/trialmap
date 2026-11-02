@@ -13,7 +13,7 @@ Node 22+; `npm ci`, `npm start` then open http://localhost:4173. Runtime has no 
 
 ## Demo
 
-Six independently treated pots, three A on shelf1 and three B on shelf2, measured five times:30 readings but6 units. Increase readings; the location confounding remains. Move a pot or try the mixed layout; only the specific complete-confounding pattern clears. Select shared treatment and unit count becomes unknown. Compare to starting plan and print the plan.
+Six independently treated pots, three A on shelf1 and three B on shelf2, measured five times:30 readings but6 units. Increase readings; the location confounding remains. Move a pot or try the mixed layout; only the specific complete-confounding pattern clears. Select shared treatment and unit count becomes unknown. Compare to the starting example, or capture your current plan as a session-only checkpoint before editing. Compare both plans' readings, declared independent units and shelf pattern; restore the checkpoint with Undo available until the next plan edit. Replacing a checkpoint requires a separate confirmation and overwrites only that snapshot. The comparison lists actual per-pot and assumption changes, even when totals are unchanged. Reload clears the checkpoint and undo. Print the plan with an open comparison.
 
 ## Limits
 
@@ -22,3 +22,4 @@ Two treatments and two shelf locations, six pots in the UI. A unit count is know
 All data stays in memory in the tab; no persistence, accounts, telemetry or automatic uploads. Reload discards changes. Printing uses the browser/system print destination selected by the user. The static host receives ordinary page requests; scientific inputs are not sent by app code.
 
 Sources and adaptation notes are in the app and BUILD-BASELINE.md. Original source and inline vector artwork, AI-assisted. Fresh implementation started October31 2026 at04:02UTC, after verified event opening04:00UTC. No pre-window code/assets. The initial independently reviewed four-file app source is `f6c67e0e05c62e62026e9d15a50d662713015f85`; subsequent reviewed changes are in [current source](https://github.com/sharonbasovich/trialmap/tree/main). Source/domain and actual Chromium desktop/mobile/print reviews passed; this is not teacher/student validation. Live-host verification runs separately in the Verify live TrialMap Pages workflow.
+

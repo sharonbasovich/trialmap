@@ -11,3 +11,10 @@ test('HTML versions its stylesheet and module to avoid mixed cached releases', (
     assert.ok(!html.includes(`./${file}"`), `${file} must not use the unversioned cached URL`);
   }
 });
+
+
+test('app versions the checkpoint module so cached snapshots cannot mix releases', () => {
+  const app = readFileSync(new URL('./app.mjs', import.meta.url), 'utf8');
+  const hash = createHash('sha256').update(readFileSync(new URL('./checkpoint.mjs', import.meta.url))).digest('hex').slice(0, 12);
+  assert.ok(app.includes(`./checkpoint.mjs?v=${hash}"`));
+});

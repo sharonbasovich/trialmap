@@ -1,12 +1,16 @@
 import { analyze, makeExample } from "./model.mjs";
+import { copyPlan, comparisonRows, describeChanges } from "./checkpoint.mjs?v=493857619592";
+let checkpoint = null;
+let confirmingReplacement = false;
+let comparisonMode = "starting";
 let state = makeExample("confounded");
 let selected = "P1";
 let compared = false;
 let presetUndo = null;
-const copyPlan = (plan) => ({ ...plan, pots: plan.pots.map((pot) => ({ ...pot })) });
 function rememberPreset(next, trigger, label) {
   // A no-op example must not replace the recoverable custom plan.
   if (JSON.stringify(next) !== JSON.stringify(state)) {
+    confirmingReplacement = false;
     presetUndo = { plan: copyPlan(state), selected, trigger, label };
   }
 }
@@ -86,6 +90,18 @@ function render({ focus = null, notice = null, movePots = false } = {}) {
   stopPotMotion();
   const a = analyze(state);
   $("undo-preset").disabled = !presetUndo;
+  $("undo-preset").setAttribute("aria-label", presetUndo?.trigger === "#restore-checkpoint" ? "Undo checkpoint restore" : "Undo example change");
+  $("capture-checkpoint").textContent = confirmingReplacement ? "Confirm replacement" : checkpoint ? "Replace checkpoint" : "Capture current plan";
+  $("cancel-checkpoint").hidden = !confirmingReplacement;
+  $("undo-checkpoint").hidden = presetUndo?.trigger !== "#restore-checkpoint";
+  $("restore-checkpoint").disabled = !checkpoint || JSON.stringify(checkpoint.plan) === JSON.stringify(state);
+  $("comparison-source").hidden = !checkpoint;
+  $("comparison-mode").value = comparisonMode;
+  $("checkpoint-status").textContent = confirmingReplacement
+    ? "Replace the saved checkpoint with the current plan? The previous checkpoint will be discarded; current edits stay unchanged."
+    : checkpoint
+    ? `Checkpoint: ${analyze(checkpoint.plan).readingCount} readings. Edit the plan, then compare. Kept only in this tab.`
+    : "Capture a checkpoint before editing to compare your own before and after. Kept only in this tab.";
   $("preset-result").textContent = presetUndo?.label ?? "Explore the examples.";
   const p = state.pots.find((p) => p.id === selected) || state.pots[0];
   selected = p.id;
@@ -127,9 +143,28 @@ function render({ focus = null, notice = null, movePots = false } = {}) {
   $("comparison").hidden = !compared;
   $("compare").textContent = compared
     ? "Hide comparison"
-    : "Compare with starting plan";
+    : comparisonMode === "checkpoint" ? "Compare with checkpoint" : "Compare with starting plan";
+  const baseline = comparisonMode === "checkpoint" && checkpoint ? analyze(checkpoint.plan) : initial;
+  const before = comparisonRows(baseline);
+  const after = comparisonRows(a);
   $("comparison").innerHTML =
-    `<dl><dt>Starting plan</dt><dd>Current plan</dd><dt>${initial.readingCount} readings</dt><dd>${a.readingCount} readings</dd><dt>${initial.experimentalUnitCount} independent pots*</dt><dd>${a.experimentalUnitCount === null ? "Independent units unknown" : a.experimentalUnitCount + " independent pots*"}</dd><dt>Complete shelf confounding</dt><dd>${a.completeConfounding ? "Still present" : a.oneTreatment ? "Comparison unavailable" : "Not detected in declared layout"}</dd></dl><p>*Only when each pot receives treatment independently. This compares layouts, not expected plant outcomes.</p>`;
+    `<dl><dt>${comparisonMode === "checkpoint" ? "Your checkpoint" : "Starting plan"}</dt><dd>Current plan</dd><dt>${before.readings}</dt><dd>${after.readings}</dd><dt>${before.units}</dt><dd>${after.units}</dd><dt>${before.pattern}</dt><dd>${after.pattern}</dd></dl><p>*Only when each pot receives treatment independently. Shared or unknown treatment units stay unknown. Shelf patterns describe the declared pots, not proof of independence or a valid experiment. This compares layouts, not expected plant outcomes.</p>`;
+  const differences = describeChanges(comparisonMode === "checkpoint" && checkpoint ? checkpoint.plan : makeExample("confounded"), state);
+  const changeSummary = document.createElement("div");
+  changeSummary.id = "comparison-changes";
+  const heading = document.createElement("p");
+  heading.textContent = differences.length ? "What changed" : `No changes since ${comparisonMode === "checkpoint" ? "checkpoint" : "starting plan"}.`;
+  changeSummary.append(heading);
+  if (differences.length) {
+    const list = document.createElement("ul");
+    for (const difference of differences) {
+      const item = document.createElement("li");
+      item.textContent = difference;
+      list.append(item);
+    }
+    changeSummary.append(list);
+  }
+  $("comparison").append(changeSummary);
   movePotsFrom(previous);
   if (focus) {
     const el = document.querySelector(focus);
@@ -149,10 +184,10 @@ $("shelves").addEventListener("click", (e) => {
 $("pot-editor").addEventListener("change", (e) => {
   const p = state.pots.find((p) => p.id === selected);
   if (e.target.id === "pot-treatment") {
-    if (p.treatment !== e.target.value) presetUndo = null;
+    if (p.treatment !== e.target.value) { presetUndo = null; confirmingReplacement = false; }
     p.treatment = e.target.value;
   } else if (e.target.id === "pot-shelf") {
-    if (p.shelf !== Number(e.target.value)) presetUndo = null;
+    if (p.shelf !== Number(e.target.value)) { presetUndo = null; confirmingReplacement = false; }
     p.shelf = Number(e.target.value);
   }
   else return;
@@ -164,7 +199,7 @@ $("pot-editor").addEventListener("change", (e) => {
   });
 });
 $("readings").addEventListener("input", (e) => {
-  if (state.readingsPerPot !== Number(e.target.value)) presetUndo = null;
+  if (state.readingsPerPot !== Number(e.target.value)) { presetUndo = null; confirmingReplacement = false; }
   state.readingsPerPot = Number(e.target.value);
   render();
 });
@@ -174,7 +209,7 @@ $("readings").addEventListener("change", () =>
   ),
 );
 $("unit").addEventListener("change", (e) => {
-  if (state.treatmentUnit !== e.target.value) presetUndo = null;
+  if (state.treatmentUnit !== e.target.value) { presetUndo = null; confirmingReplacement = false; }
   state.treatmentUnit = e.target.value;
   render({ notice: finding(analyze(state)).title });
 });
@@ -200,9 +235,10 @@ $("mixed").addEventListener("click", () => {
       "Mixed example loaded. Each shelf now has both treatments. Only the complete treatment and shelf confounding pattern is removed." + (presetUndo ? " Undo example change is available." : ""),
   });
 });
-$("undo-preset").addEventListener("click", () => {
+function undoReplacement() {
   if (!presetUndo) return;
   const previous = presetUndo;
+  confirmingReplacement = false;
   state = copyPlan(previous.plan);
   selected = previous.selected;
   presetUndo = null;
@@ -211,6 +247,43 @@ $("undo-preset").addEventListener("click", () => {
     movePots: true,
     notice: `Previous plan restored. Selected pot ${selected}. ${finding(analyze(state)).title}`,
   });
+}
+$("undo-preset").addEventListener("click", undoReplacement);
+$("undo-checkpoint").addEventListener("click", undoReplacement);
+$("capture-checkpoint").addEventListener("click", () => {
+  if (checkpoint && !confirmingReplacement) {
+    confirmingReplacement = true;
+    render({ notice: "Confirm replacement to discard the earlier checkpoint, or cancel to keep it." });
+    return;
+  }
+  confirmingReplacement = false;
+  checkpoint = { plan: copyPlan(state), selected };
+  comparisonMode = "checkpoint";
+  render({ notice: "Current plan captured as your checkpoint. Edit the plan, then compare. Reload clears the checkpoint." });
+});
+function cancelReplacement() {
+  confirmingReplacement = false;
+  render({ focus: "#capture-checkpoint", notice: "Replacement cancelled. Your checkpoint and current edits are unchanged." });
+}
+$("cancel-checkpoint").addEventListener("click", cancelReplacement);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && confirmingReplacement) {
+    e.preventDefault();
+    cancelReplacement();
+  }
+});
+$("comparison-mode").addEventListener("change", (e) => {
+  comparisonMode = e.target.value;
+  render({ notice: comparisonMode === "checkpoint" ? "Comparing with your captured checkpoint." : "Comparing with the original starting example." });
+});
+$("restore-checkpoint").addEventListener("click", () => {
+  if (!checkpoint || JSON.stringify(checkpoint.plan) === JSON.stringify(state)) return;
+  confirmingReplacement = false;
+  presetUndo = { plan: copyPlan(state), selected, trigger: "#restore-checkpoint", label: "Checkpoint restored. Undo until next plan edit." };
+  state = copyPlan(checkpoint.plan);
+  selected = checkpoint.selected;
+  // Restore becomes disabled, so move focus to the available recovery action.
+  render({ movePots: true, focus: "#undo-checkpoint", notice: "Checkpoint restored. Undo checkpoint restore is available until the next plan edit." });
 });
 $("compare").addEventListener("click", () => {
   compared = !compared;

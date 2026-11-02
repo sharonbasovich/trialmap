@@ -17,7 +17,7 @@ createServer(async (req, res) => {
     );
     const requested = pathname === "/" ? "index.html" : pathname.slice(1);
     if (
-      !["index.html", "style.css", "app.mjs", "model.mjs"].includes(requested)
+      !["index.html", "style.css", "app.mjs", "model.mjs", "checkpoint.mjs"].includes(requested)
     ) {
       res.writeHead(404).end("Not found");
       return;
@@ -41,3 +41,4 @@ createServer(async (req, res) => {
 }).listen(Number(process.env.PORT || 4173), "127.0.0.1", () =>
   console.log("TrialMap ready"),
 );
+
