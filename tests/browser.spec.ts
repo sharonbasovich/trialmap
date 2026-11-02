@@ -421,3 +421,96 @@ test('preset recovery is stable at mobile widths, during motion and on print', a
   await expect(page.locator('#preset-receipt')).toBeVisible();
   await expect(page.locator('#undo-preset')).toBeDisabled();
 });
+
+
+test('checkpoint capture, edit, compare, reversible restore and reload', async ({ page }) => {
+  await page.goto('/');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('#restore-checkpoint')).toBeDisabled();
+  await page.locator('#mixed').click();
+  await page.locator('#readings').fill('12');
+  await page.locator('#unit').selectOption('shared');
+  const captured = await planSnapshot(page);
+  await page.locator('#capture-checkpoint').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#capture-checkpoint')).toBeFocused();
+  await expect(page.locator('#comparison-mode')).toHaveValue('checkpoint');
+  await page.locator('#readings').fill('20');
+  await page.locator('#unit').selectOption('pot');
+  await page.locator('[data-pot=P2]').click();
+  await page.locator('#pot-treatment').selectOption('B');
+  const edited = await planSnapshot(page);
+  await page.locator('#compare').click();
+  await expect(page.locator('#comparison')).toContainText('Your checkpoint');
+  await expect(page.locator('#comparison')).toContainText('72 readings');
+  await expect(page.locator('#comparison')).toContainText('120 readings');
+  await expect(page.locator('#comparison')).toContainText('Independent units unknown');
+  await page.locator('#restore-checkpoint').click();
+  expect(await planSnapshot(page)).toEqual(captured);
+  await expect(page.locator('#undo-checkpoint')).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await planSnapshot(page)).toEqual(edited);
+  await expect(page.locator('#restore-checkpoint')).toBeFocused();
+  await page.locator('#comparison-mode').selectOption('starting');
+  await expect(page.locator('#comparison')).toContainText('Starting plan');
+  await expect(page.locator('#comparison')).toContainText('30 readings');
+  await page.reload();
+  await expect(page.locator('#restore-checkpoint')).toBeDisabled();
+  await expect(page.locator('#comparison-source')).toBeHidden();
+});
+
+test('replacement checkpoint, preset interactions and mobile print accessibility', async ({ page }) => {
+  await page.goto('/');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.locator('#capture-checkpoint').click();
+  await page.locator('#readings').fill('20');
+  await page.locator('#capture-checkpoint').click();
+  await page.locator('#cancel-checkpoint').click();
+  await expect(page.locator('#capture-checkpoint')).toBeFocused();
+  await page.locator('#compare').click();
+  await expect(page.locator('#comparison')).toContainText('30 readings');
+  await page.locator('#capture-checkpoint').click();
+  await page.locator('#capture-checkpoint').click(); // Confirm replacement records 120, not 30.
+  await page.locator('#compare').click(); // Close for the open-comparison step below.
+  await page.locator('#confounded').click();
+  await page.locator('#restore-checkpoint').click();
+  await expect(page.locator('#readings-count')).toHaveText('120');
+  await page.locator('#readings').fill('15'); // Meaningful edit invalidates restore undo.
+  await expect(page.locator('#undo-preset')).toBeDisabled();
+  await page.locator('#restore-checkpoint').click();
+  await expect(page.locator('#readings-count')).toHaveText('120');
+  await page.locator('#compare').click();
+  for (const width of [320, 360]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  }
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.checkpoint-controls')).toBeHidden();
+  await expect(page.locator('#comparison')).toContainText('Your checkpoint');
+  await expect(page.locator('#comparison')).toContainText('120 readings');
+});
+
+test('checkpoint replacement cancellation follows Escape and meaningful plan edits', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#capture-checkpoint').click();
+  await page.locator('#readings').fill('20');
+  await page.locator('#capture-checkpoint').click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#capture-checkpoint')).toBeFocused();
+  await expect(page.locator('#cancel-checkpoint')).toBeHidden();
+  for (const edit of ['readings', 'unit', 'pot-shelf', 'pot-treatment', 'mixed', 'restore-checkpoint']) {
+    await page.locator('#capture-checkpoint').click();
+    await expect(page.locator('#capture-checkpoint')).toHaveText('Confirm replacement');
+    if (edit === 'readings') await page.locator('#readings').fill('15');
+    else if (edit === 'unit') await page.locator('#unit').selectOption('shared');
+    else if (edit === 'pot-shelf') await page.locator('#pot-shelf').selectOption('2');
+    else if (edit === 'pot-treatment') await page.locator('#pot-treatment').selectOption('B');
+    else await page.locator('#' + edit).click();
+    await expect(page.locator('#cancel-checkpoint')).toBeHidden();
+    await expect(page.locator('#capture-checkpoint')).toHaveText('Replace checkpoint');
+  }
+  await expect(page.locator('#readings-count')).toHaveText('30');
+  await expect(page.locator('#unit')).toHaveValue('pot');
+});

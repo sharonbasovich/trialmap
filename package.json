@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test *.test.mjs",
-    "check": "node --check app.mjs && node --check model.mjs && node --check server.mjs",
+    "check": "node --check app.mjs && node --check model.mjs && node --check checkpoint.mjs && node --check server.mjs",
     "build": "node build.mjs",
     "test:browser": "playwright test"
   },
@@ -15,3 +15,4 @@
     "@axe-core/playwright": "4.14.0"
   }
 }
+

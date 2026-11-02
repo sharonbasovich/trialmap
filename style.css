@@ -922,3 +922,23 @@ footer .brand {
   }
 }
 
+
+/* Compact session-only checkpoint controls; existing reduced-motion rules apply. */
+.checkpoint-controls { margin-top: 16px; border-top: 1px solid #52725d; padding-top: 12px; }
+#checkpoint-status { font-size: 12px; line-height: 1.6; color: #e1e8d5; }
+.checkpoint-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.checkpoint-actions .button { margin-top: 8px; min-height: 44px; }
+#comparison-source { margin-top: 12px; }
+#comparison-source label { display: block; font-size: 12px; margin-bottom: 6px; }
+#comparison-mode { max-width: 100%; min-height: 44px; }
+@media print { .checkpoint-controls { display: none; } }
+
+.checkpoint-controls [hidden] { display: none; }
+.checkpoint-controls .button:disabled { opacity: .5; cursor: default; }
+.checkpoint-controls .button:disabled:hover { transform: none; background: transparent; }
+
+#comparison-changes { margin-top: 12px; }
+#comparison-changes > p { font-weight: 600; }
+#comparison-changes ul { margin: 6px 0 0; padding-left: 18px; }
+#comparison-changes li + li { margin-top: 6px; }
+@media print { #comparison-changes { color: black; } }

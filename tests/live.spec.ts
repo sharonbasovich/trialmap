@@ -11,8 +11,8 @@ test.beforeEach(async ({ page }) => {
 });
 test.afterEach(() => expect(errors).toEqual([]));
 
-test("live four-file bytes match checked-out accepted source", async ({ request }) => {
-  const files = ["index.html", "style.css", "app.mjs", "model.mjs"];
+test("live static-file bytes match checked-out accepted source", async ({ request }) => {
+  const files = ["index.html", "style.css", "app.mjs", "model.mjs", "checkpoint.mjs"];
   const results = [];
   for (const file of files) {
     const url = new URL(file, target).href;
@@ -114,3 +114,4 @@ test("live printed comparison preserves readable starting and current plans", as
   await page.screenshot({ path: "live-evidence/print-comparison.png", fullPage: true });
   await page.pdf({ path: "live-evidence/print-comparison.pdf", printBackground: false });
 });
+
