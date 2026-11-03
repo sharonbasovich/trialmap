@@ -17,7 +17,7 @@ createServer(async (req, res) => {
     );
     const requested = pathname === "/" ? "index.html" : pathname.slice(1);
     if (
-      !["index.html", "style.css", "app.mjs", "model.mjs", "checkpoint.mjs"].includes(requested)
+      !["index.html", "style.css", "app.mjs", "model.mjs", "checkpoint.mjs", "feedback.mjs"].includes(requested)
     ) {
       res.writeHead(404).end("Not found");
       return;

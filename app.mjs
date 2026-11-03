@@ -1,3 +1,4 @@
+import { finding, nextQuestion } from "./feedback.mjs?v=c2407cf0fb5f";
 import { analyze, makeExample } from "./model.mjs";
 import { copyPlan, comparisonRows, describeChanges } from "./checkpoint.mjs?v=493857619592";
 let checkpoint = null;
@@ -50,38 +51,7 @@ const plant = (t, id) =>
 function announce(text) {
   $("announcement").textContent = text;
 }
-function finding(a) {
-  if (a.unitUncertain)
-    return {
-      kind: "unknown",
-      title: "First, identify the treatment unit.",
-      text: "Shared treatment can make a tray or reservoir the experimental unit. The number of independent units is unknown here, even though the pot and reading counts are known.",
-      small:
-        "Clarify this assumption with your teacher before interpreting the layout.",
-    };
-  if (a.oneTreatment)
-    return {
-      kind: "unknown",
-      title: "The comparison is missing a treatment.",
-      text: "Both A and B need to be present to compare them. This layout currently contains only one treatment.",
-      small: "No claim about sample adequacy is made.",
-    };
-  if (a.completeConfounding)
-    return {
-      kind: "confounded",
-      title: "Treatment and shelf are tangled.",
-      text: "Every A pot is on one shelf; every B pot is on the other. A growth difference could be treatment, location, or both.",
-      small: "More readings will not separate those explanations.",
-    };
-  return {
-    kind: "mixed",
-    title: "This complete confounding is absent.",
-    text: "The declared layout no longer separates A and B entirely by shelf. That removes this specific pattern, not every possible design flaw.",
-    small: a.imbalance
-      ? "Treatment pot counts differ. Unequal counts need thoughtful planning."
-      : "Equal pot counts do not establish enough independent trials.",
-  };
-}
+
 function render({ focus = null, notice = null, movePots = false } = {}) {
   // Capture the visible, possibly in-flight position before cancelling an old move.
   const previous = movePots && !reducedMotion.matches
@@ -138,7 +108,7 @@ function render({ focus = null, notice = null, movePots = false } = {}) {
       ? "Only one treatment is present. There is no A-versus-B comparison to assess."
       : "Read the cells as pot counts, not proof of sufficient replication. Other factors are outside this model.";
   $("next-step").innerHTML =
-    `<div class="next-step"><strong>Next question:</strong> ${a.unitUncertain ? "What receives treatment independently: each pot, a tray, or something else?" : a.oneTreatment ? "Which pots will receive the other treatment?" : a.completeConfounding ? "Could you place both treatments on both shelves, then ask your teacher about random allocation?" : "How will you assign treatments, keep measurements consistent, and account for other environmental differences?"}</div>`;
+    `<div class="next-step"><strong>Next question:</strong> ${nextQuestion(a)}</div>`;
   $("compare").setAttribute("aria-expanded", String(compared));
   $("comparison").hidden = !compared;
   $("compare").textContent = compared
