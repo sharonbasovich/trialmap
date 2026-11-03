@@ -18,3 +18,10 @@ test('app versions the checkpoint module so cached snapshots cannot mix releases
   const hash = createHash('sha256').update(readFileSync(new URL('./checkpoint.mjs', import.meta.url))).digest('hex').slice(0, 12);
   assert.ok(app.includes(`./checkpoint.mjs?v=${hash}"`));
 });
+
+test('feedback module is versioned and included in the static build', () => {
+  const app = readFileSync(new URL('./app.mjs', import.meta.url), 'utf8');
+  const hash = createHash('sha256').update(readFileSync(new URL('./feedback.mjs', import.meta.url))).digest('hex').slice(0, 12);
+  assert.ok(app.includes(`./feedback.mjs?v=${hash}"`));
+  assert.ok(readFileSync(new URL('./build.mjs', import.meta.url), 'utf8').includes('"feedback.mjs"'));
+});

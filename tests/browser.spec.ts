@@ -514,3 +514,39 @@ test('checkpoint replacement cancellation follows Escape and meaningful plan edi
   await expect(page.locator('#readings-count')).toHaveText('30');
   await expect(page.locator('#unit')).toHaveValue('pot');
 });
+
+for (const treatment of ['A', 'B']) for (const unit of ['shared', 'unknown']) {
+  test(`combined warnings survive checkpoint restoration: ${treatment}, ${unit}`, async ({ page }) => {
+    await page.goto('/');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (let n = 1; n <= 6; n++) {
+      await page.locator(`[data-pot=P${n}]`).click();
+      await page.locator('#pot-treatment').selectOption(treatment);
+    }
+    await page.locator('#unit').selectOption(unit);
+    await expect(page.locator('#finding')).toContainText('Both A and B need to be present');
+    await expect(page.locator('#finding')).toContainText('independent treatment unit is not yet clear');
+    await expect(page.locator('#next-step')).toContainText('treatment independently');
+    await expect(page.locator('#next-step')).toContainText('which will receive B');
+    await expect(page.locator('#units-count')).toHaveText('?');
+    await expect(page.locator('#readings-count')).toHaveText('30');
+    await page.locator('#capture-checkpoint').click();
+    await page.locator('#unit').selectOption('pot');
+    await expect(page.locator('#finding')).toContainText('missing a treatment');
+    await page.locator('#restore-checkpoint').click();
+    await expect(page.locator('#finding')).toContainText('Two questions');
+    await page.locator('#undo-checkpoint').press('Enter');
+    await expect(page.locator('#finding')).toContainText('missing a treatment');
+    await page.locator('#unit').selectOption(unit);
+    await page.locator('#pot-treatment').selectOption(treatment === 'A' ? 'B' : 'A');
+    await expect(page.locator('#finding')).toContainText('identify the treatment unit');
+    await expect(page.locator('#finding')).not.toContainText('only one treatment');
+    await page.locator('#pot-treatment').selectOption(treatment);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    await page.screenshot({ path: `evidence/combined-${treatment}-${unit}-390.png`, fullPage: true });
+    await page.emulateMedia({ media: 'print' });
+    await expect(page.locator('#finding')).toContainText('Both A and B need to be present');
+    await expect(page.locator('#next-step')).toContainText('which will receive B');
+  });
+}
