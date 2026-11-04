@@ -566,8 +566,10 @@ test('native exit warning protects edits, checkpoints and undo without blocking 
   await page.locator('#readings').fill('12');
   // Declining an actual reload preserves the plan and continues normal interaction.
   const stay = page.waitForEvent('dialog');
-  const cancelledReload = page.reload().catch(error => {
-    expect(String(error)).toMatch(/ERR_ABORTED|aborted/i);
+  // Chromium may leave the navigation waiter pending after the user cancels.
+  // Bound only that waiter; the actual beforeunload dialog must still be observed/dismissed.
+  const cancelledReload = page.reload({ timeout: 1500 }).catch(error => {
+    expect(String(error)).toMatch(/ERR_ABORTED|aborted|page.reload: Timeout 1500ms exceeded/i);
   });
   const dialog = await stay;
   expect(dialog.type()).toBe('beforeunload');
