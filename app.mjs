@@ -1,6 +1,6 @@
 import { finding, nextQuestion } from "./feedback.mjs?v=c2407cf0fb5f";
 import { analyze, makeExample } from "./model.mjs";
-import { copyPlan, comparisonRows, describeChanges } from "./checkpoint.mjs?v=493857619592";
+import { copyPlan, comparisonRows, describeChanges, hasSessionPlanWork } from "./checkpoint.mjs?v=0303edf52882";
 let checkpoint = null;
 let confirmingReplacement = false;
 let comparisonMode = "starting";
@@ -15,7 +15,19 @@ function rememberPreset(next, trigger, label) {
     presetUndo = { plan: copyPlan(state), selected, trigger, label };
   }
 }
-const initial = analyze(makeExample("confounded"));
+const startingPlan = makeExample("confounded");
+const initial = analyze(startingPlan);
+let exitWarningAttached = false;
+function warnBeforeExit(event) {
+  event.preventDefault();
+  event.returnValue = "";
+}
+function syncExitWarning() {
+  const needed = hasSessionPlanWork(state, startingPlan, checkpoint, presetUndo);
+  if (needed === exitWarningAttached) return;
+  window[needed ? "addEventListener" : "removeEventListener"]("beforeunload", warnBeforeExit);
+  exitWarningAttached = needed;
+}
 const $ = (id) => document.getElementById(id);
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const potAnimations = new Set();
@@ -58,6 +70,7 @@ function render({ focus = null, notice = null, movePots = false } = {}) {
     ? new Map([...document.querySelectorAll("[data-pot]")].map((pot) => [pot.dataset.pot, pot.getBoundingClientRect()]))
     : null;
   stopPotMotion();
+  syncExitWarning();
   const a = analyze(state);
   $("undo-preset").disabled = !presetUndo;
   $("undo-preset").setAttribute("aria-label", presetUndo?.trigger === "#restore-checkpoint" ? "Undo checkpoint restore" : "Undo example change");

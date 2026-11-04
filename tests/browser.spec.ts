@@ -550,3 +550,62 @@ for (const treatment of ['A', 'B']) for (const unit of ['shared', 'unknown']) {
     await expect(page.locator('#next-step')).toContainText('which will receive B');
   });
 }
+
+test('native exit warning protects edits, checkpoints and undo without blocking a clean session', async ({ page }) => {
+  await page.goto('/');
+  // Real user activation; presentation-only selection must not add a warning.
+  await page.locator('[data-pot="P2"]').click();
+  let cleanDialogs = 0;
+  const unexpected = async dialog => { cleanDialogs++; await dialog.accept(); };
+  page.on('dialog', unexpected);
+  await page.reload();
+  expect(cleanDialogs).toBe(0);
+  page.off('dialog', unexpected);
+
+  await page.locator('[data-pot="P2"]').click();
+  await page.locator('#readings').fill('12');
+  // Declining an actual reload preserves the plan and continues normal interaction.
+  const stay = page.waitForEvent('dialog');
+  // Chromium may leave the navigation waiter pending after the user cancels.
+  // Bound only that waiter; the actual beforeunload dialog must still be observed/dismissed.
+  const cancelledReload = page.reload({ timeout: 1500 }).catch(error => {
+    expect(String(error)).toMatch(/ERR_ABORTED|aborted|page.reload: Timeout 1500ms exceeded/i);
+  });
+  const dialog = await stay;
+  expect(dialog.type()).toBe('beforeunload');
+  await dialog.dismiss();
+  await cancelledReload;
+  await expect(page.locator('#readings-count')).toHaveText('72');
+  await page.locator('#capture-checkpoint').click();
+  await page.locator('#confounded').click();
+  await expect(page.locator('#readings-count')).toHaveText('30');
+  // The default-looking screen still holds both a checkpoint and a recoverable edit.
+  const leave = page.waitForEvent('dialog');
+  const reload = page.reload();
+  const leaveDialog = await leave;
+  expect(leaveDialog.type()).toBe('beforeunload');
+  await leaveDialog.accept();
+  await reload;
+  await expect(page.locator('#readings-count')).toHaveText('30');
+  await expect(page.locator('#checkpoint-status')).toContainText('Capture a checkpoint');
+  await expect(page.locator('#undo-preset')).toBeDisabled();
+
+  // Returning the controls to the original values removes the listener.
+  await page.locator('[data-pot="P2"]').click();
+  await page.locator('#readings').fill('12');
+  await page.locator('#readings').fill('5');
+  page.on('dialog', unexpected);
+  await page.reload();
+  expect(cleanDialogs).toBe(0);
+  page.off('dialog', unexpected);
+
+  // Capturing even an unchanged plan is intentional session work.
+  await page.locator('#capture-checkpoint').click();
+  const checkpointDialog = page.waitForEvent('dialog');
+  const finalReload = page.reload();
+  const confirmExit = await checkpointDialog;
+  expect(confirmExit.type()).toBe('beforeunload');
+  await confirmExit.accept();
+  await finalReload;
+  await expect(page.locator('#checkpoint-status')).toContainText('Capture a checkpoint');
+});

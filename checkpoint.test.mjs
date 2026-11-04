@@ -45,3 +45,19 @@ test('change descriptions reveal equal-total pot swaps and assumption changes', 
   assert.match(changes, /P1: treatment/);
   assert.match(changes, /P2: treatment/);
 });
+
+import { hasSessionPlanWork } from './checkpoint.mjs';
+test('exit warning protects changed plans and recoverable snapshots without mutating them', () => {
+  const initial = makeExample('confounded');
+  const current = copyPlan(initial);
+  assert.equal(hasSessionPlanWork(current, initial, null, null), false);
+  for (const mutate of [p => p.readingsPerPot++, p => p.treatmentUnit = 'shared', p => p.pots[0].shelf = 2, p => p.pots[0].treatment = 'B']) {
+    const changed = copyPlan(initial); mutate(changed);
+    const before = JSON.stringify(changed);
+    assert.equal(hasSessionPlanWork(changed, initial, null, null), true);
+    assert.equal(JSON.stringify(changed), before);
+  }
+  assert.equal(hasSessionPlanWork(current, initial, {plan: copyPlan(initial)}, null), true);
+  assert.equal(hasSessionPlanWork(current, initial, null, {plan: makeExample('mixed')}), true);
+  assert.equal(hasSessionPlanWork(copyPlan(initial), initial, null, null), false);
+});
