@@ -562,6 +562,7 @@ test('native exit warning protects edits, checkpoints and undo without blocking 
   expect(cleanDialogs).toBe(0);
   page.off('dialog', unexpected);
 
+  await page.locator('[data-pot="P2"]').click();
   await page.locator('#readings').fill('12');
   // Declining an actual reload preserves the plan and continues normal interaction.
   const stay = page.waitForEvent('dialog');
@@ -588,6 +589,7 @@ test('native exit warning protects edits, checkpoints and undo without blocking 
   await expect(page.locator('#undo-preset')).toBeDisabled();
 
   // Returning the controls to the original values removes the listener.
+  await page.locator('[data-pot="P2"]').click();
   await page.locator('#readings').fill('12');
   await page.locator('#readings').fill('5');
   page.on('dialog', unexpected);
