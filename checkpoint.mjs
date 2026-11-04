@@ -27,3 +27,8 @@ export function describeChanges(before, after) {
   }
   return changes;
 }
+
+// UI-only navigation guard: no persistence and no scientific inference.
+export function hasSessionPlanWork(plan, startingPlan, checkpoint, undo) {
+  return Boolean(checkpoint || undo) || JSON.stringify(plan) !== JSON.stringify(startingPlan);
+}
