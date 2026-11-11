@@ -609,3 +609,36 @@ test('native exit warning protects edits, checkpoints and undo without blocking 
   await finalReload;
   await expect(page.locator('#checkpoint-status')).toContainText('Capture a checkpoint');
 });
+
+test("decorative arrows keep their icon scale, accessible names and preset behavior", async ({ page }) => {
+  await page.goto("/");
+  for (const width of [1440, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await expect(page.getByRole("button", { name: "Print plan", exact: true })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Try a mixed layout", exact: true })).toHaveCount(1);
+    await expect(page.locator(".room-help")).toHaveText("Select a pot to move it or change its treatment. Keyboard and touch work too.");
+    for (const selector of ["#print svg", "#mixed svg", ".room-help svg"]) {
+      const icon = page.locator(selector);
+      await expect(icon).toHaveCount(1);
+      await expect(icon).toHaveAttribute("aria-hidden", "true");
+      await expect(icon).toHaveAttribute("focusable", "false");
+      await expect(icon).toHaveAttribute("stroke", "currentColor");
+      const geometry = await icon.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return { width: rect.width, height: rect.height, stroke: style.stroke, color: style.color };
+      });
+      expect(geometry.width).toBe(10);
+      expect(geometry.height).toBe(10);
+      expect(geometry.stroke).toBe(geometry.color);
+      await expect(icon.locator("path")).toHaveCount(1);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole("button", { name: "Try a mixed layout", exact: true }).click();
+    await expect(page.locator("#finding")).toContainText("This complete confounding is absent.");
+    await page.getByRole("button", { name: "Undo example change", exact: true }).click();
+    await expect(page.locator("#finding")).toContainText("Treatment and shelf are tangled.");
+  }
+  await expect(page.locator(".brand-mark")).toHaveText("✳");
+  await expect(page.locator("footer .brand")).toHaveText("TrialMap ✳");
+});
